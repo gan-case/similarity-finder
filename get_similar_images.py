@@ -83,16 +83,19 @@ def add_to_dataframe(image_path, dataframe):
 
 
 
-def get_similar_images(image_path):
+def get_similar_images(t, image_path):
     df = pd.read_parquet(FILE_PATHS["dataframe"]["name"])
 
-    t = AnnoyIndex(2622, metric='euclidean')
+    # t = AnnoyIndex(2622, metric='euclidean')
 
-    t.load(FILE_PATHS["AnnoyIndex_Saved_File"]["name"])
+    # t.load(FILE_PATHS["AnnoyIndex_Saved_File"]["name"])
 
     df = add_to_dataframe(image_path, df)
 
-    print(get_sample_n_similar(t, len(df)))
+    results = get_sample_n_similar(t, len(df))
+    del df
+
+    return results
 
 
 
