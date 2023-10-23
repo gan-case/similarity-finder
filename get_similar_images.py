@@ -6,8 +6,8 @@ import argparse
 
 FILE_PATHS = {
     "dataframe": {
-        "id": "1svruXLPaFKEXg45F9wQV7l0cQ3xHCK34",
-        "name": "dataframe_names_clusters_only.parquet.gzip",
+        "id": "1HFxHX2RkEr7_yVHnA-qk5Lj8CxOWrUda",
+        "name": "final_embeddings_clusters.parquet.gzip",
         "path": "preprocessed_files"
     },
     "AnnoyIndex_Saved_File": {
@@ -80,12 +80,14 @@ def add_to_dataframe(image_path, dataframe):
 
 def get_similar_images(image_path):
     df = pd.read_parquet(FILE_PATHS["dataframe"]["path"] + "/" + FILE_PATHS["dataframe"]["name"])
-    t = AnnoyIndex(2622, metric='euclidean')
-
-    t.load(FILE_PATHS["dataframe"]["path"] + "/" + FILE_PATHS["AnnoyIndex_Saved_File"]["name"])
-
     df = add_to_dataframe(image_path, df)
-
+    f = 2622
+    t = AnnoyIndex(2622, metric='euclidean')
+    ntree = 5
+    for i, vector in enumerate(df['embedding']):
+        t.add_item(i, vector)
+    _  = t.build(ntree)
+    
     results = get_sample_n_similar(t, df, 0)
     del df
     del t
