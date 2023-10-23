@@ -44,9 +44,7 @@ def download_required_files():
 
     return "Environent Ready!"
 
-
-
-def get_similar_images_annoy(t, img_index, n=10, max_dist=10):
+def get_similar_images_annoy(t, df, img_index, n=10, max_dist=10):
     vid, face  = df.iloc[img_index, [0, 1]]
     similar_img_ids, dist = t.get_nns_by_item(img_index, n+1, include_distances=True)
     temp = similar_img_ids[::-1]
@@ -57,9 +55,9 @@ def get_similar_images_annoy(t, img_index, n=10, max_dist=10):
     similar_img_ids = t1[1:]
     return vid, vid, df.iloc[similar_img_ids], dist
 
-def get_sample_n_similar(t,sample_idx):
+def get_sample_n_similar(t,df,sample_idx):
     output_images = []
-    vid, face, similar, distances = get_similar_images_annoy(t, sample_idx)
+    vid, face, similar, distances = get_similar_images_annoy(t, df, sample_idx)
     list_plot = [face] + similar['face'].values.tolist()
     list_cluster = [df.iloc[sample_idx]['cluster']] + similar['cluster'].values.tolist()
     for face, cluster, dist in zip(list_plot, list_cluster, distances):
@@ -70,46 +68,34 @@ def get_sample_n_similar(t,sample_idx):
     return output_images
 
 def add_to_dataframe(image_path, dataframe):
-    print("Generating embeddings for new image")
     embedding_json = {}
-    embedding_json['image_name'] = image_path
+    embedding_json['face'] = image_path
     embedding_objs = DeepFace.represent(img_path = image_path)
     embedding_json.update(embedding_objs[0])  
     _ = pd.json_normalize(embedding_json)
-    _ = _.drop(columns=["facial_area.x", "facial_area.y", "facial_area.w", "facial_area.h"])
+    _ = _.drop(columns=["facial_area.x", "facial_area.y", "facial_area.w", "facial_area.h", "embedding"])
     dataframe = pd.concat([_, dataframe], sort=False)
-
+    
     return dataframe
 
+def get_similar_images(image_path):
+    df = pd.read_parquet(FILE_PATHS["dataframe"]["path"] + "/" + FILE_PATHS["dataframe"]["name"])
+    t = AnnoyIndex(2622, metric='euclidean')
 
-
-def get_similar_images(t, image_path):
-    df = pd.read_parquet(FILE_PATHS["dataframe"]["name"])
-
-    # t = AnnoyIndex(2622, metric='euclidean')
-
-    # t.load(FILE_PATHS["AnnoyIndex_Saved_File"]["name"])
+    t.load(FILE_PATHS["dataframe"]["path"] + "/" + FILE_PATHS["AnnoyIndex_Saved_File"]["name"])
 
     df = add_to_dataframe(image_path, df)
 
-    results = get_sample_n_similar(t, len(df))
+    results = get_sample_n_similar(t, df, 0)
     del df
+    del t
 
     return results
 
-
-
-
 if __name__ == '__main__':
-
     parser = argparse.ArgumentParser()
     parser.parse_args()
-
     parser.add_argument("image_file_path", help="Enter the apth of the image file that you need similar images for")
     args = parser.parse_args()
-
     image_path = str(args.image_file_path)
-
-    print(f"Now processing: {image_path}")
-
     get_similar_images(image_path)
